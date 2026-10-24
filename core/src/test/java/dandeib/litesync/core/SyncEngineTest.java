@@ -120,6 +120,23 @@ class SyncEngineTest {
     }
 
     @Test
+    void deletedSchematicsFolderIsRedownloadedNotDeletedEverywhere() throws IOException {
+        Instance a = a(), b = b();
+        a.write("farm.litematic", "v1");
+        a.sync();
+        b.sync();
+        try (Stream<Path> s = Files.walk(b.gameDir.resolve("schematics"))) {
+            s.sorted(java.util.Comparator.reverseOrder()).forEach(p -> p.toFile().delete());
+        }
+        assertTrue(b.engine.hasLocalChanges(b.state));
+        SyncEngine.Result r = b.sync();
+        assertEquals(0, r.deletedRemote());
+        assertEquals("v1", b.read("farm.litematic"));
+        assertEquals(0, a.sync().deletedLocal());
+        assertEquals("v1", a.read("farm.litematic"));
+    }
+
+    @Test
     void deletionPropagatesAndLandsInTrash() throws IOException {
         Instance a = a(), b = b();
         a.write("farm.litematic", "v1");
@@ -309,6 +326,27 @@ class SyncEngineTest {
         assertEquals(5, generic.get("x").getAsInt());
         assertTrue(generic.get("newKey").getAsBoolean());
         assertEquals("C:/A", generic.get("customSchematicBaseDirectory").getAsString());
+    }
+
+    @Test
+    void newInstanceWithoutConfigFileGetsSharedConfig() throws IOException {
+        Instance a = new Instance("A", remote(), configOptions(0, false, null));
+        Instance b = new Instance("B", remote(), configOptions(0, false, null));
+        a.writeConfig("{\"Generic\":{\"x\":1,\"customSchematicBaseDirectory\":\"C:/A\"},\"config_version\":1}");
+        a.sync();
+
+        assertEquals(List.of(), b.engine.sync(b.state, false).configsWritten());
+        assertFalse(Files.exists(b.config()));
+        assertEquals(List.of(SyncEngine.LITEMATICA_CONFIG), b.sync().configsWritten());
+        assertEquals(JsonParser.parseString("{\"Generic\":{\"x\":1}}"), b.readConfig());
+        assertFalse(b.engine.hasLocalChanges(b.state));
+
+        // Litematica later saves its full config; that must not undo the shared value.
+        b.writeConfig("{\"Generic\":{\"x\":1,\"y\":7,\"customSchematicBaseDirectory\":\"D:/B\"},\"config_version\":1}");
+        b.sync();
+        a.sync();
+        assertEquals(1, a.readConfig().getAsJsonObject("Generic").get("x").getAsInt());
+        assertEquals("C:/A", a.readConfig().getAsJsonObject("Generic").get("customSchematicBaseDirectory").getAsString());
     }
 
     @Test

@@ -155,6 +155,9 @@ public final class SyncEngine {
             }
         }
 
+        // A missing schematics folder means a reset, not "delete everything everywhere": download it all again.
+        if (!Files.isDirectory(gameDir.resolve("schematics"))) state.base = new TreeMap<>();
+
         Map<String, String> local = scanLocal(state);
         Set<String> keys = new TreeSet<>(local.keySet());
         keys.addAll(manifest.files.keySet());
@@ -345,18 +348,21 @@ public final class SyncEngine {
             conflicts.add(copyKey.substring(PREFIX.length()));
         }
 
-        /** @return null if the config is missing locally or unreadable */
+        /** @return null if there is nothing to merge or the config is unreadable */
         PendingConfig mergeConfig(String rel, Map<String, JsonElement> base, boolean writeLocal) throws IOException {
             Path file = gameDir.resolve(rel);
-            if (!Files.isRegularFile(file)) return null;
-            JsonObject local;
-            Instant localTime;
-            try {
-                localTime = Files.getLastModifiedTime(file).toInstant();
-                local = readConfig(file);
-            } catch (IOException | RuntimeException e) {
-                warnings.add(rel + " could not be read");
-                return null;
+            boolean exists = Files.isRegularFile(file);
+            if (!exists && !writeLocal) return null;
+            JsonObject local = null;
+            Instant localTime = null;
+            if (exists) {
+                try {
+                    localTime = Files.getLastModifiedTime(file).toInstant();
+                    local = readConfig(file);
+                } catch (IOException | RuntimeException e) {
+                    warnings.add(rel + " could not be read");
+                    return null;
+                }
             }
 
             Manifest.Entry entry = manifest.files.get(rel);
@@ -373,6 +379,15 @@ public final class SyncEngine {
                     return null;
                 }
                 if (entry.keys() != null) stamps = entry.keys();
+            }
+
+            if (!exists) {
+                // Litematica only writes its config later, so a new instance has none yet: create it from the shared state.
+                Map<String, JsonElement> values = new TreeMap<>(remoteValues);
+                values.keySet().removeIf(options.configFilter().negate());
+                if (values.isEmpty()) return null;
+                return new PendingConfig(rel, new ConfigMerger.Result(remoteValues, stamps, false,
+                        ConfigMerger.nest(values), values, List.of()));
             }
 
             ConfigMerger.Result m = ConfigMerger.merge(local, localTime, base, remoteValues, stamps, instanceId,
