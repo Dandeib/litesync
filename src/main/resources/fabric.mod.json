@@ -1,0 +1,32 @@
+{
+	"schemaVersion": 1,
+	"id": "litesync",
+	"version": "${version}",
+	"name": "LiteSync",
+	"description": "Syncs Litematica settings and schematics across instances via a shared folder on your PC.",
+	"authors": [
+		"dandeib"
+	],
+	"license": "MIT",
+	"icon": "assets/litesync/icon.png",
+	"environment": "client",
+	"entrypoints": {
+		"client": [
+			"dandeib.litesync.client.LiteSyncClient"
+		],
+		"modmenu": [
+			"dandeib.litesync.client.ModMenuIntegration"
+		]
+	},
+	"depends": {
+		"fabricloader": ">=0.20.1",
+		"minecraft": "~26.3",
+		"java": ">=25",
+		"fabric-api": "*",
+		"litematica": "*",
+		"malilib": "*"
+	},
+	"suggests": {
+		"modmenu": "*"
+	}
+}

@@ -1,0 +1,76 @@
+plugins {
+	id 'net.fabricmc.fabric-loom' version "${loom_version}"
+}
+
+repositories {
+	maven {
+		url = 'https://api.modrinth.com/maven'
+		content { includeGroup 'maven.modrinth' }
+	}
+}
+
+loom {
+	splitEnvironmentSourceSets()
+
+	mods {
+		"litesync" {
+			sourceSet sourceSets.main
+			sourceSet sourceSets.client
+		}
+	}
+
+	// Two test clients with the same name (= same UUID) but separate game directories.
+	runs {
+		client {
+			programArgs "--username", "LiteSyncTester"
+		}
+		client2 {
+			client()
+			configName = "Minecraft Client 2"
+			runDir "run2"
+			ideConfigGenerated true
+			programArgs "--username", "LiteSyncTester"
+		}
+	}
+}
+
+dependencies {
+	minecraft "com.mojang:minecraft:${project.minecraft_version}"
+	implementation "net.fabricmc:fabric-loader:${project.loader_version}"
+	implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+
+	implementation project(':core')
+	include project(':core')
+
+	implementation "maven.modrinth:litematica:${project.litematica_version}"
+	implementation "maven.modrinth:malilib:${project.malilib_version}"
+	implementation "maven.modrinth:modmenu:${project.modmenu_version}"
+}
+
+processResources {
+	def version = project.version
+	inputs.property "version", version
+
+	filesMatching("fabric.mod.json") {
+		expand "version": version
+	}
+}
+
+tasks.withType(JavaCompile).configureEach {
+	it.options.release = 25
+}
+
+java {
+	withSourcesJar()
+	sourceCompatibility = JavaVersion.VERSION_25
+	targetCompatibility = JavaVersion.VERSION_25
+}
+
+jar {
+	def projectName = project.name
+	inputs.property "projectName", projectName
+
+	from("LICENSE") {
+		rename { "${it}_$projectName" }
+	}
+}
