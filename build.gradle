@@ -1,6 +1,9 @@
 plugins {
-	id 'net.fabricmc.fabric-loom' version "${loom_version}"
+	id 'net.fabricmc.fabric-loom'
 }
+
+version = "${project.mod_version}+${stonecutter.current.version}"
+base.archivesName = 'litesync'
 
 repositories {
 	maven {
@@ -19,15 +22,16 @@ loom {
 		}
 	}
 
-	// Two test clients with the same name (= same UUID) but separate game directories.
+	// Two test clients with the same name (= same UUID) but separate game directories, shared by all versions.
 	runs {
 		client {
+			runDir "../../run"
 			programArgs "--username", "LiteSyncTester"
 		}
 		client2 {
 			client()
 			configName = "Minecraft Client 2"
-			runDir "run2"
+			runDir "../../run2"
 			ideConfigGenerated true
 			programArgs "--username", "LiteSyncTester"
 		}
@@ -48,11 +52,11 @@ dependencies {
 }
 
 processResources {
-	def version = project.version
-	inputs.property "version", version
+	def props = [version: project.version, minecraft: project.minecraft_compat]
+	inputs.properties props
 
 	filesMatching("fabric.mod.json") {
-		expand "version": version
+		expand props
 	}
 }
 
@@ -66,11 +70,14 @@ java {
 	targetCompatibility = JavaVersion.VERSION_25
 }
 
+// All versions put their jars into the root build/libs.
+base.libsDirectory = rootProject.layout.buildDirectory.dir("libs")
+
 jar {
-	def projectName = project.name
+	def projectName = base.archivesName.get()
 	inputs.property "projectName", projectName
 
-	from("LICENSE") {
+	from(rootProject.file("LICENSE")) {
 		rename { "${it}_$projectName" }
 	}
 }

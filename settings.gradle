@@ -4,8 +4,27 @@ pluginManagement {
 			name = 'Fabric'
 			url = 'https://maven.fabricmc.net/'
 		}
+		maven {
+			name = 'KikuGie Releases'
+			url = 'https://maven.kikugie.dev/releases'
+		}
 		mavenCentral()
 		gradlePluginPortal()
+	}
+	plugins {
+		id 'net.fabricmc.fabric-loom' version loom_version
+	}
+}
+
+plugins {
+	id 'dev.kikugie.stonecutter' version '0.9.8'
+}
+
+// One jar per Minecraft version; per-version dependencies are in versions/<version>/gradle.properties.
+stonecutter {
+	create(rootProject) {
+		versions '26.1.2', '26.2', '26.3'
+		vcsVersion = '26.3'
 	}
 }
 

@@ -38,8 +38,8 @@ public class LiteSyncScreen extends OptionsSubScreen {
 		list.addHeader(Component.literal("Status"));
 		statusLine = new StringWidget(BIG, 20, Component.empty(), font);
 		syncLine = new StringWidget(BIG, 20, Component.empty(), font);
-		list.addBig(statusLine);
-		list.addBig(syncLine);
+		big(statusLine);
+		big(syncLine);
 		if (settings == null) {
 			updateStatus();
 			return;
@@ -48,7 +48,7 @@ public class LiteSyncScreen extends OptionsSubScreen {
 			mod.applySettings(settings);
 			mod.syncNow();
 		}).width(BIG).build();
-		list.addBig(syncNow);
+		big(syncNow);
 
 		list.addHeader(Component.literal("Sync folder"));
 		EditBox folder = new EditBox(font, BIG, 20, Component.literal("Sync folder"));
@@ -59,7 +59,7 @@ public class LiteSyncScreen extends OptionsSubScreen {
 		folder.setTooltip(Tooltip.create(Component.literal(
 				"Folder where LiteSync stores the synced data. All instances pointing to the same folder share their schematics and settings. "
 						+ "Leave empty to use the default folder shown in gray. You can point it at a OneDrive/Nextcloud folder to sync between PCs.")));
-		list.addBig(folder);
+		big(folder);
 
 		list.addHeader(Component.literal("What to sync"));
 		list.addSmall(List.of(
@@ -94,8 +94,16 @@ public class LiteSyncScreen extends OptionsSubScreen {
 		blacklist.setTooltip(Tooltip.create(Component.literal(
 				"Config values that are never synced and stay different per instance. Enter a whole category (e.g. Generic) or a single "
 				+ "setting (e.g. Generic.customSchematicBaseDirectory), separated by commas.")));
-		list.addBig(blacklist);
+		big(blacklist);
 		updateStatus();
+	}
+
+	/** A full-width row with a custom widget. */
+	private void big(AbstractWidget widget) {
+		//? if >=26.2 {
+		list.addBig(widget);
+		//?} else
+		/*list.addSmall(widget, null);*/
 	}
 
 	private static AbstractWidget toggle(String label, boolean value, Consumer<Boolean> setter, String tooltip) {

@@ -19,6 +19,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.SpriteIconButton;
 import net.minecraft.client.gui.components.toasts.SystemToast;
+import net.minecraft.client.gui.components.toasts.ToastManager;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.TitleScreen;
 import net.minecraft.network.chat.Component;
@@ -97,7 +98,7 @@ public class LiteSyncClient implements ClientModInitializer {
 		ClientLifecycleEvents.CLIENT_STOPPING.register(mc -> stop());
 		ClientTickEvents.END_CLIENT_TICK.register(mc -> {
 			if (pendingScreen != null) {
-				mc.gui.setScreen(pendingScreen);
+				setScreen(pendingScreen);
 				pendingScreen = null;
 			}
 		});
@@ -125,7 +126,7 @@ public class LiteSyncClient implements ClientModInitializer {
 		Component singleplayer = Component.translatable("menu.singleplayer");
 		AbstractWidget anchor = widgets.stream().filter(w -> singleplayer.equals(w.getMessage())).findFirst().orElse(null);
 		SpriteIconButton button = SpriteIconButton.builder(Component.literal("LiteSync"),
-						b -> client.gui.setScreen(new LiteSyncScreen(screen)), true)
+						b -> setScreen(new LiteSyncScreen(screen)), true)
 				.sprite(ICON, 15, 15).width(20).withTootip().build();
 		if (anchor != null) button.setPosition(anchor.getX() + anchor.getWidth() + 4, anchor.getY());
 		else button.setPosition(4, 4);
@@ -246,8 +247,22 @@ public class LiteSyncClient implements ClientModInitializer {
 		toast(TOAST_ERROR, title, message);
 	}
 
+	private void setScreen(Screen screen) {
+		//? if >=26.2 {
+		client.gui.setScreen(screen);
+		//?} else
+		/*client.setScreen(screen);*/
+	}
+
+	private ToastManager toastManager() {
+		//? if >=26.2 {
+		return client.gui.toastManager();
+		//?} else
+		/*return client.getToastManager();*/
+	}
+
 	private void toast(SystemToast.SystemToastId id, String title, String message) {
-		client.execute(() -> SystemToast.addOrUpdate(client.gui.toastManager(), id, Component.literal(title), Component.literal(message)));
+		client.execute(() -> SystemToast.addOrUpdate(toastManager(), id, Component.literal(title), Component.literal(message)));
 	}
 
 	private void syncIfLocalChanged(boolean writeConfigs) {

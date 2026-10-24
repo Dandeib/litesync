@@ -21,22 +21,24 @@ are matched by your Minecraft UUID.
 
 ## Requirements
 
-| | Version |
-|---|---|
-| Minecraft | 26.3 |
-| Fabric Loader | 0.20.1 or newer |
-| Java | 25 or newer |
-| Fabric API | any |
-| Litematica | 0.29.1 (tested) |
-| malilib | 0.30.2 (tested) |
-| Mod Menu | optional |
+There is one jar per Minecraft version:
 
-LiteSync is client-side only.
+| Minecraft | LiteSync jar | Litematica (tested) | malilib (tested) | Mod Menu (optional) |
+|---|---|---|---|---|
+| 26.1 – 26.1.2 | `litesync-<version>+26.1.2.jar` | 0.27.14 | 0.28.12 | 18.0.2 |
+| 26.2 | `litesync-<version>+26.2.jar` | 0.28.8 | 0.29.6 | 20.0.3 |
+| 26.3 | `litesync-<version>+26.3.jar` | 0.29.1 | 0.30.2 | 21.0.0 |
+
+All versions need Fabric Loader 0.20.1 or newer, Fabric API and Java 25 or newer. LiteSync is client-side only.
+
+Instances on different Minecraft versions can share one sync folder. Settings an older Litematica does not know stay
+in the sync folder, and schematics from newer versions are handled as described below.
 
 ## Installation
 
 1. Install Fabric, Fabric API, Litematica and malilib as usual.
-2. Put `litesync-<version>.jar` into the `mods` folder of **every** instance you want to keep in sync.
+2. Put the LiteSync jar for that instance's Minecraft version into the `mods` folder of **every** instance you want
+   to keep in sync.
 3. Start the game. LiteSync starts working as soon as the title screen appears.
 
 Every instance that uses the same sync folder and the same Minecraft account shares its schematics and settings.
@@ -209,14 +211,40 @@ Requires JDK 25 or newer.
 ./gradlew build
 ```
 
-The mod jar is written to `build/libs/litesync-<version>.jar`. The core is bundled inside it.
+This builds every Minecraft version. The jars are written to `build/libs/litesync-<version>+<minecraft>.jar`, with
+the core bundled inside. A single version is built with `./gradlew :26.2:build`.
+
+### Multiple Minecraft versions
+
+The project uses [Stonecutter](https://stonecutter.kikugie.dev/). All versions share the same sources; code that
+differs between versions is switched with comments:
+
+```java
+//? if >=26.2 {
+client.gui.setScreen(screen);
+//?} else
+/*client.setScreen(screen);*/
+```
+
+| File | Purpose |
+|---|---|
+| `settings.gradle` | List of Minecraft versions |
+| `stonecutter.gradle` | Active version (the one the sources in `src/` are written for) |
+| `versions/<minecraft>/gradle.properties` | Minecraft, Fabric API, Litematica, malilib and Mod Menu versions |
+| `gradle.properties` | Settings shared by all versions (mod version, loader, Loom) |
+
+To work on another version in the IDE, run the Gradle task `Set active project to 26.1.2`. Run
+`Reset active project` before committing, so `src/` is always committed in the 26.3 state.
+
+To add a Minecraft version, add it to `settings.gradle`, create `versions/<minecraft>/gradle.properties` and fix
+whatever fails to compile with version comments.
 
 ### Run and test
 
 | Command | Purpose |
 |---|---|
-| `./gradlew runClient` | Starts a test client |
-| `./gradlew runClient2` | Starts a second test client with the same player but its own game folder (`run2/`) |
+| `./gradlew :26.3:runClient` | Starts a test client (any version works in place of `26.3`) |
+| `./gradlew :26.3:runClient2` | Starts a second test client with the same player but its own game folder (`run2/`) |
 | `./gradlew :core:test` | Runs the core unit tests |
 
 ### Project structure
@@ -225,6 +253,7 @@ The mod jar is written to `build/libs/litesync-<version>.jar`. The core is bundl
 |---|---|
 | `core/` | Sync logic in plain Java 21, no Minecraft dependencies, with unit tests |
 | `src/client/` | Fabric client: lifecycle, commands, title screen button, settings screen, Mod Menu entry |
+| `versions/` | Per-version dependency versions; build output of each version |
 | `src/main/resources/` | `fabric.mod.json`, icon and GUI sprite |
 
 Key classes in the core:
