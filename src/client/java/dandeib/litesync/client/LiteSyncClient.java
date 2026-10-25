@@ -8,7 +8,10 @@ import dandeib.litesync.core.SyncEngine;
 import dandeib.litesync.core.SyncState;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
+//? if >=26.1 {
 import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
+//?} else
+//import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
@@ -39,6 +42,8 @@ import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
+import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 
 public class LiteSyncClient implements ClientModInitializer {
 	public static final String MOD_ID = "litesync";
@@ -47,6 +52,7 @@ public class LiteSyncClient implements ClientModInitializer {
 	private static final long SHUTDOWN_WAIT_SECONDS = 10;
 	private static final DateTimeFormatter TIME = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 	private static final SystemToast.SystemToastId TOAST_INFO = new SystemToast.SystemToastId();
+	private static final SystemToast.SystemToastId TOAST_CONFIG = new SystemToast.SystemToastId();
 	private static final SystemToast.SystemToastId TOAST_ERROR = new SystemToast.SystemToastId(10_000L);
 	private static final Identifier ICON = Identifier.fromNamespaceAndPath(MOD_ID, "icon/sync");
 
@@ -103,18 +109,18 @@ public class LiteSyncClient implements ClientModInitializer {
 			}
 		});
 		ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> dispatcher.register(
-				ClientCommands.literal("litesync")
+				literal("litesync")
 						.executes(ctx -> {
 							// Open on the next tick, otherwise closing the chat closes the screen right away.
 							pendingScreen = new LiteSyncScreen(null);
 							return 1;
 						})
-						.then(ClientCommands.literal("now").executes(ctx -> {
+						.then(literal("now").executes(ctx -> {
 							syncNow();
 							ctx.getSource().sendFeedback(Component.literal("LiteSync: sync started"));
 							return 1;
 						}))
-						.then(ClientCommands.literal("status").executes(ctx -> {
+						.then(literal("status").executes(ctx -> {
 							for (String line : statusLines()) ctx.getSource().sendFeedback(Component.literal(line));
 							return 1;
 						}))));
@@ -122,7 +128,10 @@ public class LiteSyncClient implements ClientModInitializer {
 	}
 
 	private void addTitleButton(Screen screen) {
+		//? if >=26.1 {
 		List<AbstractWidget> widgets = Screens.getWidgets(screen);
+		 //?} else
+		//List<AbstractWidget> widgets = Screens.getButtons(screen);
 		Component singleplayer = Component.translatable("menu.singleplayer");
 		AbstractWidget anchor = widgets.stream().filter(w -> singleplayer.equals(w.getMessage())).findFirst().orElse(null);
 		SpriteIconButton button = SpriteIconButton.builder(Component.literal("LiteSync"),
@@ -211,8 +220,8 @@ public class LiteSyncClient implements ClientModInitializer {
 
 	private void report(SyncEngine.Result r) {
 		if (r.changedAnything()) {
-			LOGGER.info("Sync: {} uploaded, {} downloaded, {} deleted locally, {} deleted remotely, configs written: {}",
-					r.uploaded(), r.downloaded(), r.deletedLocal(), r.deletedRemote(), r.configsWritten());
+			LOGGER.info("Sync: {} uploaded, {} downloaded, {} deleted locally, {} deleted remotely, configs written: {}, configs uploaded: {}",
+					r.uploaded(), r.downloaded(), r.deletedLocal(), r.deletedRemote(), r.configsWritten(), r.configsUploaded());
 		}
 		r.warnings().forEach(w -> LOGGER.warn(w));
 		if (!r.configsWritten().isEmpty()) client.execute(() -> reloadConfigs(r.configsWritten()));
@@ -223,8 +232,15 @@ public class LiteSyncClient implements ClientModInitializer {
 		if (!r.newer().isEmpty()) {
 			toast(TOAST_INFO, "LiteSync: newer MC version", r.newer().size() + " schematic(s) were made with a newer version");
 		}
-		if (r.downloaded() + r.uploaded() + r.configsWritten().size() > 0) {
+		if (r.downloaded() + r.uploaded() > 0) {
 			toast(TOAST_INFO, "LiteSync", "Sync done: " + r.downloaded() + " downloaded, " + r.uploaded() + " uploaded");
+		}
+		boolean settingsDownloaded = !r.configsWritten().isEmpty();
+		boolean settingsUploaded = !r.configsUploaded().isEmpty();
+		if (settingsDownloaded || settingsUploaded) {
+			String what = settingsDownloaded && settingsUploaded ? "Settings and hotkeys synced"
+					: settingsDownloaded ? "Settings and hotkeys downloaded" : "Settings and hotkeys uploaded";
+			toast(TOAST_CONFIG, "LiteSync", what);
 		}
 	}
 
@@ -247,18 +263,25 @@ public class LiteSyncClient implements ClientModInitializer {
 		toast(TOAST_ERROR, title, message);
 	}
 
+	private static LiteralArgumentBuilder<FabricClientCommandSource> literal(String name) {
+		//? if >=26.1 {
+		return ClientCommands.literal(name);
+		//?} else
+		//return ClientCommandManager.literal(name);
+	}
+
 	private void setScreen(Screen screen) {
 		//? if >=26.2 {
 		client.gui.setScreen(screen);
 		//?} else
-		/*client.setScreen(screen);*/
+		//client.setScreen(screen);
 	}
 
 	private ToastManager toastManager() {
 		//? if >=26.2 {
 		return client.gui.toastManager();
 		//?} else
-		/*return client.getToastManager();*/
+		//return client.getToastManager();
 	}
 
 	private void toast(SystemToast.SystemToastId id, String title, String message) {

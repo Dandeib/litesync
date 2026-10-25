@@ -1,5 +1,5 @@
 plugins {
-	id 'net.fabricmc.fabric-loom'
+	id 'dev.kikugie.loom-back-compat'
 }
 
 version = "${project.mod_version}+${stonecutter.current.version}"
@@ -9,6 +9,10 @@ repositories {
 	maven {
 		url = 'https://api.modrinth.com/maven'
 		content { includeGroup 'maven.modrinth' }
+	}
+	maven {
+		url = 'https://maven.fallenbreath.me/releases'
+		content { includeGroup 'me.fallenbreath' }
 	}
 }
 
@@ -40,34 +44,40 @@ loom {
 
 dependencies {
 	minecraft "com.mojang:minecraft:${project.minecraft_version}"
-	implementation "net.fabricmc:fabric-loader:${project.loader_version}"
-	implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+	loomx.applyMojangMappings()
+
+	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
 
 	implementation project(':core')
 	include project(':core')
 
-	implementation "maven.modrinth:litematica:${project.litematica_version}"
-	implementation "maven.modrinth:malilib:${project.malilib_version}"
-	implementation "maven.modrinth:modmenu:${project.modmenu_version}"
+	modImplementation "maven.modrinth:litematica:${project.litematica_version}"
+	modImplementation "maven.modrinth:malilib:${project.malilib_version}"
+	modImplementation "maven.modrinth:modmenu:${project.modmenu_version}"
+	if (stonecutter.current.parsed < "26.1") {
+		modImplementation "me.fallenbreath:conditional-mixin-fabric:0.6.4"
+	}
 }
 
 processResources {
-	def props = [version: project.version, minecraft: project.minecraft_compat]
+	def props = [version: project.version, minecraft: project.minecraft_compat, java_version: project.java_version]
 	inputs.properties props
 
 	filesMatching("fabric.mod.json") {
 		expand props
 	}
+
 }
 
 tasks.withType(JavaCompile).configureEach {
-	it.options.release = 25
+	it.options.release = project.java_version as int
 }
 
 java {
 	withSourcesJar()
-	sourceCompatibility = JavaVersion.VERSION_25
-	targetCompatibility = JavaVersion.VERSION_25
+	sourceCompatibility = JavaVersion.toVersion(project.java_version)
+	targetCompatibility = JavaVersion.toVersion(project.java_version)
 }
 
 // All versions put their jars into the root build/libs.

@@ -191,6 +191,7 @@ may need a moment to copy changes over.
 | Status says "Invalid sync folder" | The path in the settings is not valid. Clear the field to use the default folder. |
 | Nothing syncs to a new instance | Check that both instances use the same sync folder and account (`/litesync status`). |
 | A schematic came back after deleting it | Another instance had changed it before it learned about the deletion; the change wins. Delete it again. |
+| A mouse-button hotkey is lost or changes back after switching versions | See the limitation above: older versions cannot read the mouse button names of 26.3. Use keyboard keys or blacklist the hotkey. |
 | A file named `… (conflict …)` appeared | Two instances changed the same schematic. Keep the version you want and delete the other. |
 | Errors | Shown in the settings screen, in a notification and in `logs/latest.log` (search for `litesync`). |
 
@@ -200,6 +201,11 @@ may need a moment to copy changes over.
   `StorageProvider` implementation in the core.
 - Files are held in memory while syncing, which is fine for schematics up to a few tens of MB.
 - Only the default `schematics` folder is synced, not a custom schematic folder set in Litematica.
+- **Hotkeys that use mouse buttons are not portable between Minecraft 26.3 and older versions.** malilib 0.30 (26.3)
+  names mouse buttons differently (`MOUSE_BACK`, `BUTTON_4`, …) than malilib 0.27–0.29 (1.21.11, 26.1, 26.2). An older
+  version cannot read the new names, drops them and saves the hotkey without the mouse button, which is then synced
+  back. Use keyboard keys for hotkeys you share across these versions, or add the hotkey to the config blacklist
+  (for example `Hotkeys.pickBlockToggle`, or `Hotkeys` for all of them).
 
 ## Development
 

@@ -21,7 +21,7 @@
 	"depends": {
 		"fabricloader": ">=0.20.1",
 		"minecraft": "${minecraft}",
-		"java": ">=25",
+		"java": ">=${java_version}",
 		"fabric-api": "*",
 		"litematica": "*",
 		"malilib": "*"

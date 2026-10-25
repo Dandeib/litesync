@@ -309,10 +309,11 @@ class SyncEngineTest {
         Instance b = new Instance("B", remote(), configOptions(0, false, null));
         a.writeConfig("{\"Generic\":{\"x\":1,\"newKey\":true,\"customSchematicBaseDirectory\":\"C:/A\"},\"config_version\":2}");
         b.writeConfig("{\"Generic\":{\"x\":0,\"customSchematicBaseDirectory\":\"D:/B\"},\"config_version\":1}");
-        a.sync();
+        assertEquals(List.of(SyncEngine.LITEMATICA_CONFIG), a.sync().configsUploaded());
 
         SyncEngine.Result r = b.sync();
         assertEquals(List.of(SyncEngine.LITEMATICA_CONFIG), r.configsWritten());
+        assertEquals(List.of(), r.configsUploaded());
         // New value applied; unknown and blacklisted keys are not; config_version untouched.
         assertEquals(JsonParser.parseString("{\"Generic\":{\"x\":1,\"customSchematicBaseDirectory\":\"D:/B\"},\"config_version\":1}"),
                 b.readConfig());

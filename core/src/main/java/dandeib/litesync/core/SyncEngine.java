@@ -51,13 +51,15 @@ public final class SyncEngine {
     /**
      * @param conflicts      conflict copies, relative to schematics/
      * @param configsWritten config files changed locally; they must be reloaded
+     * @param configsUploaded config files whose shared state was changed by this instance
      * @param newer          downloaded schematics from a newer MC version, relative to schematics/
      * @param hidden         schematics from a newer MC version that were not downloaded
      */
     public record Result(int uploaded, int downloaded, int deletedLocal, int deletedRemote, List<String> conflicts,
-                         List<String> configsWritten, List<String> newer, int hidden, List<String> warnings) {
+                         List<String> configsWritten, List<String> configsUploaded, List<String> newer, int hidden,
+                         List<String> warnings) {
         public boolean changedAnything() {
-            return uploaded + downloaded + deletedLocal + deletedRemote + conflicts.size() + configsWritten.size() > 0;
+            return uploaded + downloaded + deletedLocal + deletedRemote + conflicts.size() + configsWritten.size() + configsUploaded.size() > 0;
         }
     }
 
@@ -223,7 +225,7 @@ public final class SyncEngine {
         });
         state.base = base;
         return new Result(a.uploaded, a.downloaded, a.deletedLocal, a.deletedRemote, a.conflicts,
-                configsWritten, a.newer, a.hidden, warnings);
+                configsWritten, a.configsUploaded, a.newer, a.hidden, warnings);
     }
 
     private Manifest readBackup(IOException cause) throws IOException {
@@ -280,6 +282,7 @@ public final class SyncEngine {
         int uploaded, downloaded, deletedLocal, deletedRemote, hidden;
         final List<String> conflicts = new ArrayList<>();
         final List<String> newer = new ArrayList<>();
+        final List<String> configsUploaded = new ArrayList<>();
 
         Actions(Manifest manifest, String instanceId, Instant now, List<String> warnings) {
             this.manifest = manifest;
@@ -400,6 +403,7 @@ public final class SyncEngine {
                 String hash = uploadBlob(data);
                 manifest.files.put(rel, Manifest.Entry.config(hash, data.length, now, m.stamps()));
                 manifestChanged = true;
+                configsUploaded.add(rel);
             }
             return new PendingConfig(rel, m);
         }

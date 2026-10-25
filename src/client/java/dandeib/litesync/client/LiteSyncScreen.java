@@ -103,7 +103,7 @@ public class LiteSyncScreen extends OptionsSubScreen {
 		//? if >=26.2 {
 		list.addBig(widget);
 		//?} else
-		/*list.addSmall(widget, null);*/
+		//list.addSmall(widget, null);
 	}
 
 	private static AbstractWidget toggle(String label, boolean value, Consumer<Boolean> setter, String tooltip) {
